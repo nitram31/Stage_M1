@@ -167,7 +167,7 @@ def read_manta(path, dog_dict, sep):
 
         chromosome = cont[0]
         if 'chrY' in chromosome or 'chrUn' in chromosome:
-            return ''
+            return 'unannotated_chr'
         position = cont[1]
         location, gene_id = get_corresponding_info(position, chromosome)
 
@@ -176,8 +176,9 @@ def read_manta(path, dog_dict, sep):
         line_split = li.split(sep)
         line_split.insert(2, gene_id)
         line_split.insert(3, location)
-        li = list_to_sep_line(line_split, sep)
 
+        li = list_to_sep_line(line_split, sep)
+        print(li)
         if args.chromosome and chromosome not in args.chromosome:
             # filter based on chromosome
             return ''
@@ -207,20 +208,23 @@ def read_manta(path, dog_dict, sep):
             first_line = list_to_sep_line(first_line_split, sep)
 
         body += first_line + "\n"
-
+        i = 0
         for line in text[0:-1]:
             content = line.split("\t")
+            valid_line = ''
             if args.genotype:
                 for j in range(14, len(content)):  # tests if the genotype for the variant correspond to those expected
                     if content[j] not in dog_dict[dog_list[j - 14]]:
                         break
 
                     if j == len(content) - 1:
-                        line = line_analysis(line, content)
+                        i += 1
+                        valid_line = line_analysis(line, content)
             else:
-                line = line_analysis(line, content)
-            if line != '':
-                body += line + "\n"
+                valid_line = line_analysis(line, content)
+            if valid_line != '':
+                body += valid_line + "\n"
+        print(i)
     return body
 
 
