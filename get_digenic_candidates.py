@@ -4,18 +4,22 @@ import argparse
 This script is used to parse the vcf file containing the variant in the population to find two genes that are only 
 present as homozygous in affected subjects. 
 
-First we have to create a .vcf file containing only the header and the lines that contains the variants of interest. 
+First a .vcf file must be created, containing only the header and the lines that contains the variants of interest. 
 
-Then we have to create an "expected genotype" file, where the dogs ID and its 
-genotype should be organized as follows :
+Then "expected genotype" file has to be created, where the dogs ID and its 
+genotype should be organized as follows, with one line for each expected genotype:
 
 Note that the dogs id should be identical to the one contained in the header of the first .vcf file
 
 Dog_id  expected_genotype_for_the_second_gene
 6958RE  1/1
+6958RE  1/0
 BC548   1/1   
+BC547   1/1
 
-supported format are csv (comma or semicolon) and tsv.
+
+
+supported format is tsv.
 
 The last file is the .vcf file containing the variant and the genotype of the dogs in the population, note that a header 
 with the identical dog_id as the other two files is required. 
@@ -29,12 +33,13 @@ python3 get_digenic_candidates -g dog_genotype_path -k known_variant_path -p pop
 # sys.tracebacklimit = -1
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-g', "--genotype", help='path to the dog expected dog genotype file')
+parser.add_argument('-g', "--genotype", help='path to the expected dog genotype file')
 parser.add_argument('-k', '--known_variant', help='path to the file containing the manually filtered variant of the \
  first gene that will be matched with others ')
 parser.add_argument('-p', '--population_variant', help='path to the file containing the genotype of the population')
 parser.add_argument('-a', '--annotation', help='path to the file containing the variant for which the dogs are \
                                                 homozygous')
+parser.add_argument('-o', '--output', help='path to output file', default='digenic_candidates')
 args = parser.parse_args()
 
 
@@ -62,14 +67,15 @@ def read_genotype(path):
                 case _:
                     pass
         if sep == "":
-            raise Exception("Invalid separator, please use csv or tsv files")
-
+            raise Exception("Invalid separator, please use tsv files")
         for line in text:
             current_dog = line.split(sep)[0]
             if current_dog not in dog_dict.keys():
-                dog_dict[current_dog] = ''
-            genotype = line.split(sep)[1]
-            dog_dict[current_dog] = {'genotype': genotype}
+                dog_dict[current_dog] = {'genotype': ''}
+
+            if line != '':
+                genotype = line.split(sep)[1]
+            dog_dict[current_dog]['genotype'] = genotype
     return sep, dog_dict
 
 
@@ -190,7 +196,7 @@ def output_variants(annotation_path, variant_dict, known_variant_dict):
     with open(annotation_path, 'r') as file:
         text = file.read().split('\n')[:-1]
         header = text[0].split('\t')
-        header.insert(5, '#HOMOZYGOUS INDIVIDUALS')
+        header.insert(5, '#HOMOZYGOUS_INDIVIDUALS')
         header = list_to_sep_line(header, '\t')
         body = header + '\n'
         for known_chromosome in known_variant_dict:
@@ -199,7 +205,7 @@ def output_variants(annotation_path, variant_dict, known_variant_dict):
                 body += ">" + known_variant_dict[known_chromosome][1][line_index] + "\n"
                 for line in text[1:]:
                     line = line.split('\t')
-                    chromosome = line[0]
+                    chromosome = line[0]    
                     position = line[1]
                     if chromosome in variant_dict and position in variant_dict[chromosome]:
                         line.insert(5, variant_dict[chromosome][position]['number_digenic_homozygous_'
@@ -207,7 +213,7 @@ def output_variants(annotation_path, variant_dict, known_variant_dict):
                                                                           + "_"
                                                                           + known_position])
                         body += list_to_sep_line(line, '\t') + "\n"
-    with open('digenic_candidates', 'w') as file:
+    with open(args.output, 'w') as file:
         file.write(body)
 
 
