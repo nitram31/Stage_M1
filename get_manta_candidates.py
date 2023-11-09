@@ -170,6 +170,7 @@ def read_manta(path, dog_dict, sep):
             return 'unannotated_chr'
         position = cont[1]
         location, gene_id = get_corresponding_info(position, chromosome)
+        #print(location, gene_id)
 
         if '[' in cont[4] or ']' in cont[4]:
             gene_id += '-' + get_corresponding_chromosome(cont[4])
@@ -178,7 +179,7 @@ def read_manta(path, dog_dict, sep):
         line_split.insert(3, location)
 
         li = list_to_sep_line(line_split, sep)
-        print(li)
+        #print(li)
         if args.chromosome and chromosome not in args.chromosome:
             # filter based on chromosome
             return ''
@@ -208,7 +209,6 @@ def read_manta(path, dog_dict, sep):
             first_line = list_to_sep_line(first_line_split, sep)
 
         body += first_line + "\n"
-        i = 0
         for line in text[0:-1]:
             content = line.split("\t")
             valid_line = ''
@@ -218,13 +218,11 @@ def read_manta(path, dog_dict, sep):
                         break
 
                     if j == len(content) - 1:
-                        i += 1
                         valid_line = line_analysis(line, content)
             else:
                 valid_line = line_analysis(line, content)
             if valid_line != '':
                 body += valid_line + "\n"
-        print(i)
     return body
 
 
@@ -341,12 +339,11 @@ def get_corresponding_info(var_pos, chrom):
         #  if the variant is located within a gene
         if int(gene_location[0]) < int(var_pos) < int(gene_location[1]) \
                 or int(gene_location[1]) < int(var_pos) < int(gene_location[0]):
-
             for exon_number in ann_dict[chrom][gene_id]['exon']:
                 exon_location = ann_dict[chrom][gene_id]['exon'][exon_number]
                 if int(exon_location[0]) < int(var_pos) < int(exon_location[1]) \
                         or int(exon_location[1]) < int(var_pos) < int(exon_location[0]):
-                    return exon_number, gene_id
+                    return '_'.join(exon_number.split(' ')), gene_id
             exon_number = 'Intronic'
             return exon_number, gene_id
 
